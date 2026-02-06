@@ -1,0 +1,152 @@
+.note-list {
+  width: 300px;
+  min-width: 300px;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.note-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.note-list-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.note-list-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.new-note-btn {
+  padding: 6px 12px;
+  background: var(--accent);
+  color: white;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.new-note-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.new-note-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.note-list-items {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.note-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.note-item:hover {
+  background: var(--bg-hover);
+}
+
+.note-item.active {
+  background: var(--bg-surface);
+  border-left: 3px solid var(--accent);
+  padding-left: 13px;
+}
+
+.note-item.pinned {
+  background: rgba(74, 144, 217, 0.05);
+}
+
+.note-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.note-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.pin-indicator {
+  margin-right: 4px;
+  font-size: 11px;
+}
+
+.note-delete-btn {
+  opacity: 0;
+  font-size: 16px;
+  color: var(--text-muted);
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.note-item:hover .note-delete-btn {
+  opacity: 1;
+}
+
+.note-delete-btn:hover {
+  color: var(--danger);
+}
+
+.note-item-preview {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.note-item-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.note-item-tags {
+  display: flex;
+  gap: 3px;
+}
+
+.note-tag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.note-list-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.note-list-empty p {
+  margin-bottom: 12px;
+}
