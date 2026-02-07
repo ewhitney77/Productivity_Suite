@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  background: #0F1117;
+  color: #E8ECF1;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1A1D2B;
+}
+::-webkit-scrollbar-thumb {
+  background: #2E3348;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3E4460;
+}
+
+/* Glow effects */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(41, 181, 232, 0.15);
+}
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+}
+
+/* Pulse animation for live indicators */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: all 0.2s ease;
+}
+.card-hover:hover {
+  background: #2A2F45;
+  border-color: #29B5E8;
+}
+
+/* Tab transitions */
+.tab-active {
+  background: linear-gradient(135deg, rgba(41, 181, 232, 0.15), rgba(124, 92, 252, 0.1));
+  border-color: #29B5E8;
+}
+
+/* Kanban column */
+.kanban-col {
+  min-height: 200px;
+}
+
+/* Stock ticker colors */
+.stock-up { color: #4CAF50; }
+.stock-down { color: #F44336; }
+
+/* Input/textarea dark styling */
+input, textarea, select {
+  background: #1A1D2B;
+  border: 1px solid #2E3348;
+  color: #E8ECF1;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #29B5E8;
+}
+input::placeholder, textarea::placeholder {
+  color: #5A6178;
+}
+
+/* Badge styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.badge-blue { background: rgba(41, 181, 232, 0.15); color: #29B5E8; }
+.badge-green { background: rgba(76, 175, 80, 0.15); color: #4CAF50; }
+.badge-yellow { background: rgba(255, 152, 0, 0.15); color: #FF9800; }
+.badge-red { background: rgba(244, 67, 54, 0.15); color: #F44336; }
+.badge-purple { background: rgba(124, 92, 252, 0.15); color: #7C5CFC; }
+
+/* Priority indicators */
+.priority-high { border-left: 3px solid #F44336; }
+.priority-medium { border-left: 3px solid #FF9800; }
+.priority-low { border-left: 3px solid #4CAF50; }
