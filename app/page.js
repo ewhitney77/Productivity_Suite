@@ -20,7 +20,7 @@ export default function Home() {
   }, []);
 
   const handleLogin = (password) => {
-    const validHash = 'ps2024secure';
+    const validHash = '6Cobbler77!';
     if (password === validHash) {
       localStorage.setItem('ps_session', JSON.stringify({
         authenticated: true,
@@ -40,7 +40,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-bg">
-        <div className="w-8 h-8 border-2 border-accent-blue border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-accent-green border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
