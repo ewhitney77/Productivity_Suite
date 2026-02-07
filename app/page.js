@@ -20,7 +20,7 @@ export default function Home() {
   }, []);
 
   const handleLogin = (password) => {
-    const validHash = 'ps2024secure';
+    const validHash = '6Cobbler77!';
     if (password === validHash) {
       localStorage.setItem('ps_session', JSON.stringify({
         authenticated: true,
