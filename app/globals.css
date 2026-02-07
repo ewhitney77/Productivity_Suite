@@ -31,11 +31,8 @@ body {
 }
 
 /* Glow effects */
-.glow-blue {
-  box-shadow: 0 0 20px rgba(41, 181, 232, 0.15);
-}
-.glow-cyan {
-  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+.glow-green {
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.12);
 }
 
 /* Pulse animation for live indicators */
@@ -53,22 +50,17 @@ body {
 }
 .card-hover:hover {
   background: #2A2F45;
-  border-color: #29B5E8;
+  border-color: #4ADE80;
 }
 
 /* Tab transitions */
 .tab-active {
-  background: linear-gradient(135deg, rgba(41, 181, 232, 0.15), rgba(124, 92, 252, 0.1));
-  border-color: #29B5E8;
-}
-
-/* Kanban column */
-.kanban-col {
-  min-height: 200px;
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.12), rgba(52, 211, 153, 0.08));
+  border-color: #4ADE80;
 }
 
 /* Stock ticker colors */
-.stock-up { color: #4CAF50; }
+.stock-up { color: #4ADE80; }
 .stock-down { color: #F44336; }
 
 /* Input/textarea dark styling */
@@ -84,7 +76,7 @@ input, textarea, select {
 }
 input:focus, textarea:focus, select:focus {
   outline: none;
-  border-color: #29B5E8;
+  border-color: #4ADE80;
 }
 input::placeholder, textarea::placeholder {
   color: #5A6178;
@@ -99,13 +91,24 @@ input::placeholder, textarea::placeholder {
   font-size: 11px;
   font-weight: 500;
 }
-.badge-blue { background: rgba(41, 181, 232, 0.15); color: #29B5E8; }
-.badge-green { background: rgba(76, 175, 80, 0.15); color: #4CAF50; }
+.badge-green { background: rgba(74, 222, 128, 0.15); color: #4ADE80; }
+.badge-mint { background: rgba(52, 211, 153, 0.15); color: #34D399; }
 .badge-yellow { background: rgba(255, 152, 0, 0.15); color: #FF9800; }
 .badge-red { background: rgba(244, 67, 54, 0.15); color: #F44336; }
 .badge-purple { background: rgba(124, 92, 252, 0.15); color: #7C5CFC; }
+.badge-gray { background: rgba(136, 146, 167, 0.15); color: #8892A7; }
 
 /* Priority indicators */
 .priority-high { border-left: 3px solid #F44336; }
 .priority-medium { border-left: 3px solid #FF9800; }
-.priority-low { border-left: 3px solid #4CAF50; }
+.priority-low { border-left: 3px solid #4ADE80; }
+
+/* Drag and drop */
+.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+.drag-over {
+  background: rgba(74, 222, 128, 0.05);
+  border-color: rgba(74, 222, 128, 0.3);
+}

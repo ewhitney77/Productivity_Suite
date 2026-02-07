@@ -4,87 +4,44 @@ import { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Plus, Trash2, ChevronDown, ChevronRight, CheckCircle2,
-  Circle, Clock, ClipboardList, StickyNote, Zap,
+  Circle, Clock,
   ChevronLeft, ChevronRight as ChevronRightIcon
 } from 'lucide-react';
 import { load, save } from '../../lib/storage';
-import { getWeekKey, getWeekLabel, getPreviousWeeks, rolloverItems } from '../../lib/weekUtils';
+import { getWeekLabel, getPreviousWeeks, rolloverItems } from '../../lib/weekUtils';
 
 const STATUS_CYCLE = ['open', 'in-progress', 'done'];
 const STATUS_ICONS = { 'open': Circle, 'in-progress': Clock, 'done': CheckCircle2 };
-const STATUS_COLORS = { 'open': 'text-text-secondary', 'in-progress': 'text-accent-blue', 'done': 'text-green-400' };
+const STATUS_COLORS = { 'open': 'text-text-secondary', 'in-progress': 'text-accent-green', 'done': 'text-green-400' };
 
-function EditableItem({ item, onUpdate, onDelete, fields }) {
-  const [editing, setEditing] = useState(null);
-  const [editValue, setEditValue] = useState('');
-
-  const startEdit = (field) => { setEditing(field); setEditValue(item[field] || ''); };
-  const saveEdit = () => {
-    if (editing) { onUpdate({ ...item, [editing]: editValue }); setEditing(null); }
-  };
-
+function ActionRow({ item, onUpdate, onDelete }) {
   const StatusIcon = STATUS_ICONS[item.status] || Circle;
-
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 bg-dark-card border border-dark-border rounded-lg group">
-      {item.status !== undefined && (
-        <button
-          onClick={() => {
-            const idx = STATUS_CYCLE.indexOf(item.status);
-            onUpdate({ ...item, status: STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length] });
-          }}
-          className={`shrink-0 ${STATUS_COLORS[item.status]} hover:opacity-70`}
-        >
-          <StatusIcon size={16} />
-        </button>
-      )}
-      <div className="flex-1 flex items-center gap-3 min-w-0 flex-wrap">
-        {fields.map((field) => (
-          <div key={field.key} className={`${field.width || 'flex-1'} min-w-0`}>
-            {editing === field.key ? (
-              field.multiline ? (
-                <textarea
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  onBlur={saveEdit}
-                  className="w-full text-sm bg-dark-bg px-2 py-1 rounded resize-none"
-                  rows={2}
-                  autoFocus
-                />
-              ) : (
-                <input
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  onBlur={saveEdit}
-                  onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
-                  className="w-full text-sm bg-dark-bg px-2 py-1 rounded"
-                  autoFocus
-                />
-              )
-            ) : (
-              <span
-                onClick={() => startEdit(field.key)}
-                className={`text-sm cursor-pointer hover:text-accent-blue transition-colors block
-                  ${field.key === 'title' ? 'font-medium text-text-primary' : 'text-text-secondary'}
-                  ${field.multiline ? '' : 'truncate'}`}
-              >
-                {item[field.key] || field.placeholder || '—'}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
+    <div className="flex items-center gap-2 px-3 py-2 bg-dark-card border border-dark-border rounded-lg group">
       <button
-        onClick={() => onDelete(item.id)}
-        className="shrink-0 text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+        onClick={() => {
+          const idx = STATUS_CYCLE.indexOf(item.status);
+          onUpdate({ ...item, status: STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length] });
+        }}
+        className={`shrink-0 ${STATUS_COLORS[item.status]} hover:opacity-70`}
       >
-        <Trash2 size={14} />
+        <StatusIcon size={14} />
+      </button>
+      <input value={item.title} onChange={(e) => onUpdate({ ...item, title: e.target.value })}
+        placeholder="Action item..." className="flex-[2] text-sm bg-transparent border-none px-1 py-0 font-medium text-text-primary" />
+      <input value={item.owner} onChange={(e) => onUpdate({ ...item, owner: e.target.value })}
+        placeholder="Owner" className="w-24 text-xs bg-transparent border-none px-1 py-0 text-text-secondary" />
+      <input value={item.dueDate} onChange={(e) => onUpdate({ ...item, dueDate: e.target.value })}
+        placeholder="Due date" className="w-24 text-xs bg-transparent border-none px-1 py-0 text-text-muted" />
+      <button onClick={() => onDelete(item.id)}
+        className="shrink-0 text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+        <Trash2 size={12} />
       </button>
     </div>
   );
 }
 
-function ManagerSection({ title, icon: Icon, storageKey, currentWeek, fields, defaultItem }) {
+function ActionSection({ title, storageKey, currentWeek }) {
   const fullKey = `manager_${storageKey}`;
   const [items, setItems] = useState({});
   const [collapsed, setCollapsed] = useState(false);
@@ -92,9 +49,7 @@ function ManagerSection({ title, icon: Icon, storageKey, currentWeek, fields, de
   useEffect(() => {
     let loaded = load(fullKey, {});
     const weeks = getPreviousWeeks(2);
-    if (weeks.length > 1) {
-      loaded = rolloverItems(loaded, weeks[0], weeks[1]);
-    }
+    if (weeks.length > 1) loaded = rolloverItems(loaded, weeks[0], weeks[1]);
     setItems(loaded);
   }, [fullKey]);
 
@@ -107,46 +62,63 @@ function ManagerSection({ title, icon: Icon, storageKey, currentWeek, fields, de
   }, [items, currentWeek, fullKey]);
 
   const addItem = () => {
-    updateItems([...weekItems, { id: uuidv4(), ...defaultItem, createdAt: new Date().toISOString() }]);
-  };
-
-  const updateItem = (updatedItem) => {
-    updateItems(weekItems.map(i => i.id === updatedItem.id ? updatedItem : i));
-  };
-
-  const deleteItem = (id) => {
-    updateItems(weekItems.filter(i => i.id !== id));
+    updateItems([...weekItems, { id: uuidv4(), title: '', owner: '', dueDate: '', status: 'open', createdAt: new Date().toISOString() }]);
   };
 
   return (
     <div className="bg-dark-surface border border-dark-border rounded-xl overflow-hidden">
-      <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-dark-hover transition-colors"
-        onClick={() => setCollapsed(!collapsed)}
-      >
+      <div className="flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-dark-hover transition-colors"
+        onClick={() => setCollapsed(!collapsed)}>
         <div className="flex items-center gap-2">
-          {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-          <Icon size={16} className="text-accent-purple" />
-          <h3 className="text-sm font-semibold">{title}</h3>
-          <span className="badge badge-purple">{weekItems.length}</span>
+          {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+          <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+          <span className="badge badge-green">{weekItems.length}</span>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); addItem(); }}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-accent-purple hover:bg-accent-purple/10 rounded transition-colors"
-        >
-          <Plus size={12} />
-          Add
+        <button onClick={(e) => { e.stopPropagation(); addItem(); }}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-accent-green hover:bg-accent-green/10 rounded transition-colors">
+          <Plus size={12} /> Add
         </button>
       </div>
       {!collapsed && (
-        <div className="px-4 pb-3 space-y-1.5">
+        <div className="px-4 pb-3 space-y-1">
           {weekItems.length === 0 ? (
             <p className="text-xs text-text-muted py-3 text-center">No items yet</p>
           ) : (
             weekItems.map((item) => (
-              <EditableItem key={item.id} item={item} onUpdate={updateItem} onDelete={deleteItem} fields={fields} />
+              <ActionRow key={item.id} item={item} onUpdate={(u) => updateItems(weekItems.map(i => i.id === u.id ? u : i))} onDelete={(id) => updateItems(weekItems.filter(i => i.id !== id))} />
             ))
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TextSection({ title, storageKey, currentWeek, placeholder }) {
+  const fullKey = `manager_${storageKey}`;
+  const [data, setData] = useState({});
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => { setData(load(fullKey, {})); }, [fullKey]);
+
+  const text = data[currentWeek] || '';
+  const updateText = (value) => {
+    const updated = { ...data, [currentWeek]: value };
+    setData(updated);
+    save(fullKey, updated);
+  };
+
+  return (
+    <div className="bg-dark-surface border border-dark-border rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-dark-hover transition-colors"
+        onClick={() => setCollapsed(!collapsed)}>
+        {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+        <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+      </div>
+      {!collapsed && (
+        <div className="px-4 pb-3">
+          <textarea value={text} onChange={(e) => updateText(e.target.value)} placeholder={placeholder}
+            className="w-full text-sm bg-dark-bg border border-dark-border rounded-lg px-3 py-2 resize-y min-h-[80px] text-text-primary" rows={4} />
         </div>
       )}
     </div>
@@ -159,78 +131,38 @@ export default function ManagerTab() {
   const currentWeek = weeks[weekOffset] || weeks[0];
 
   return (
-    <div className="space-y-6">
-      {/* Week selector with history */}
+    <div className="max-w-5xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setWeekOffset(Math.min(weekOffset + 1, weeks.length - 1))}
-            className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-dark-card rounded transition-colors"
-          >
+          <button onClick={() => setWeekOffset(Math.min(weekOffset + 1, weeks.length - 1))}
+            className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-dark-card rounded transition-colors">
             <ChevronLeft size={16} />
           </button>
-          <div className="text-center">
+          <div className="text-center min-w-[180px]">
             <span className="text-sm font-semibold">{getWeekLabel(currentWeek)}</span>
             {weekOffset === 0 && <span className="ml-2 badge badge-green">Current</span>}
           </div>
-          <button
-            onClick={() => setWeekOffset(Math.max(weekOffset - 1, 0))}
+          <button onClick={() => setWeekOffset(Math.max(weekOffset - 1, 0))}
             disabled={weekOffset === 0}
-            className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-dark-card rounded transition-colors disabled:opacity-30"
-          >
+            className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-dark-card rounded transition-colors disabled:opacity-30">
             <ChevronRightIcon size={16} />
           </button>
         </div>
-        {/* Week history quick select */}
-        <select
-          value={weekOffset}
-          onChange={(e) => setWeekOffset(Number(e.target.value))}
-          className="text-xs bg-dark-card border border-dark-border rounded px-2 py-1"
-        >
+        <select value={weekOffset} onChange={(e) => setWeekOffset(Number(e.target.value))}
+          className="text-xs bg-dark-card border border-dark-border rounded px-2 py-1">
           {weeks.slice(0, 12).map((w, i) => (
             <option key={w} value={i}>{getWeekLabel(w)}{i === 0 ? ' (Current)' : ''}</option>
           ))}
         </select>
       </div>
 
-      <ManagerSection
-        title="Meeting Prep"
-        icon={ClipboardList}
-        storageKey="meetingprep"
-        currentWeek={currentWeek}
-        fields={[
-          { key: 'title', width: 'flex-[2]', placeholder: 'Meeting topic...' },
-          { key: 'date', width: 'w-28', placeholder: 'Date' },
-          { key: 'prep', width: 'flex-1', placeholder: 'Prep notes...', multiline: true },
-        ]}
-        defaultItem={{ title: '', date: '', prep: '', status: 'open' }}
-      />
+      <TextSection title="Meeting Prep" storageKey="meetingprep" currentWeek={currentWeek}
+        placeholder="Prepare for manager meetings... Topics to discuss, updates to share, questions to ask." />
 
-      <ManagerSection
-        title="Notes"
-        icon={StickyNote}
-        storageKey="notes"
-        currentWeek={currentWeek}
-        fields={[
-          { key: 'title', width: 'flex-[2]', placeholder: 'Note title...' },
-          { key: 'content', width: 'flex-[3]', placeholder: 'Note content...', multiline: true },
-        ]}
-        defaultItem={{ title: '', content: '' }}
-      />
+      <TextSection title="Notes" storageKey="notes" currentWeek={currentWeek}
+        placeholder="Meeting notes, key takeaways, decisions made..." />
 
-      <ManagerSection
-        title="Action Items"
-        icon={Zap}
-        storageKey="actions"
-        currentWeek={currentWeek}
-        fields={[
-          { key: 'title', width: 'flex-[2]', placeholder: 'Action item...' },
-          { key: 'owner', width: 'w-28', placeholder: 'Owner' },
-          { key: 'dueDate', width: 'w-28', placeholder: 'Due date' },
-          { key: 'notes', width: 'flex-1', placeholder: 'Notes...' },
-        ]}
-        defaultItem={{ title: '', owner: '', dueDate: '', status: 'open', notes: '' }}
-      />
+      <ActionSection title="Action Items" storageKey="actions" currentWeek={currentWeek} />
     </div>
   );
 }

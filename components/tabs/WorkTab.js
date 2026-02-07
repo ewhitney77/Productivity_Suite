@@ -4,102 +4,111 @@ import { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Plus, Trash2, ChevronDown, ChevronRight, CheckCircle2,
-  Circle, Clock, AlertCircle, Bug, MessageSquare, Phone,
+  Circle, Clock, PauseCircle, Send,
   ChevronLeft, ChevronRight as ChevronRightIcon
 } from 'lucide-react';
 import { load, save } from '../../lib/storage';
-import { getWeekKey, getWeekLabel, getPreviousWeeks, rolloverItems } from '../../lib/weekUtils';
+import { getWeekLabel, getPreviousWeeks, rolloverItems } from '../../lib/weekUtils';
 
-const JIRA_STATUSES = ['open', 'in-progress', 'blocked', 'done'];
-const STATUS_ICONS = {
-  'open': Circle,
-  'in-progress': Clock,
-  'blocked': AlertCircle,
-  'done': CheckCircle2,
-};
+const JIRA_STATUSES = ['open', 'in-progress', 'on-hold', 'closed'];
+const STATUS_LABELS = { 'open': 'Open', 'in-progress': 'In Progress', 'on-hold': 'On Hold', 'closed': 'Closed' };
+const STATUS_ICONS = { 'open': Circle, 'in-progress': Clock, 'on-hold': PauseCircle, 'closed': CheckCircle2 };
 const STATUS_COLORS = {
   'open': 'text-text-secondary',
-  'in-progress': 'text-accent-blue',
-  'blocked': 'text-red-400',
-  'done': 'text-green-400',
+  'in-progress': 'text-accent-green',
+  'on-hold': 'text-yellow-400',
+  'closed': 'text-green-400',
 };
 
-function ItemRow({ item, onUpdate, onDelete, fields }) {
-  const [editing, setEditing] = useState(null);
-  const [editValue, setEditValue] = useState('');
-
-  const startEdit = (field) => {
-    setEditing(field);
-    setEditValue(item[field] || '');
-  };
-
-  const saveEdit = () => {
-    if (editing) {
-      onUpdate({ ...item, [editing]: editValue });
-      setEditing(null);
-    }
-  };
-
-  const StatusIcon = STATUS_ICONS[item.status] || Circle;
-
+function JiraRow({ item, onUpdate, onDelete }) {
   return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 bg-dark-card border border-dark-border rounded-lg group
+    <div className={`flex items-center gap-2 px-3 py-2 bg-dark-card border border-dark-border rounded-lg group
                     ${item.rolledOver ? 'border-l-2 border-l-yellow-500/50' : ''}`}>
-      {item.status !== undefined && (
-        <button
-          onClick={() => {
-            const idx = JIRA_STATUSES.indexOf(item.status);
-            const next = JIRA_STATUSES[(idx + 1) % JIRA_STATUSES.length];
-            onUpdate({ ...item, status: next });
-          }}
-          className={`shrink-0 ${STATUS_COLORS[item.status] || 'text-text-secondary'} hover:opacity-70`}
-          title={item.status}
-        >
-          <StatusIcon size={16} />
-        </button>
-      )}
-
-      <div className="flex-1 flex items-center gap-3 min-w-0 flex-wrap">
-        {fields.map((field) => (
-          <div key={field.key} className={`${field.width || 'flex-1'} min-w-0`}>
-            {editing === field.key ? (
-              <input
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onBlur={saveEdit}
-                onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
-                className="w-full text-sm bg-dark-bg px-2 py-1 rounded"
-                autoFocus
-              />
-            ) : (
-              <span
-                onClick={() => startEdit(field.key)}
-                className={`text-sm cursor-pointer hover:text-accent-blue transition-colors truncate block
-                  ${field.key === 'title' ? 'font-medium text-text-primary' : 'text-text-secondary'}`}
-              >
-                {item[field.key] || field.placeholder || '—'}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {item.rolledOver && (
-        <span className="badge badge-yellow shrink-0">carried</span>
-      )}
-
-      <button
-        onClick={() => onDelete(item.id)}
-        className="shrink-0 text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+      <select
+        value={item.status}
+        onChange={(e) => onUpdate({ ...item, status: e.target.value })}
+        className={`text-xs px-1 py-0.5 rounded border-none bg-transparent cursor-pointer ${STATUS_COLORS[item.status]}`}
       >
-        <Trash2 size={14} />
+        {JIRA_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+      </select>
+
+      <input
+        value={item.title}
+        onChange={(e) => onUpdate({ ...item, title: e.target.value })}
+        placeholder="Jira title..."
+        className="flex-[2] text-sm bg-transparent border-none px-1 py-0 font-medium text-text-primary"
+      />
+      <input
+        value={item.ticket}
+        onChange={(e) => onUpdate({ ...item, ticket: e.target.value })}
+        placeholder="PROJ-123"
+        className="w-24 text-xs bg-transparent border-none px-1 py-0 font-mono text-text-muted"
+      />
+      <select
+        value={item.priority || 'medium'}
+        onChange={(e) => onUpdate({ ...item, priority: e.target.value })}
+        className="text-xs bg-transparent border-none px-1 py-0 text-text-secondary"
+      >
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+      <input
+        value={item.notes}
+        onChange={(e) => onUpdate({ ...item, notes: e.target.value })}
+        placeholder="Notes..."
+        className="flex-1 text-xs bg-transparent border-none px-1 py-0 text-text-secondary"
+      />
+      {item.rolledOver && <span className="badge badge-yellow text-[9px] shrink-0">carried</span>}
+      <button onClick={() => onDelete(item.id)}
+        className="shrink-0 text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+        <Trash2 size={12} />
       </button>
     </div>
   );
 }
 
-function Section({ title, icon: Icon, storageKey, tabId, currentWeek, fields, defaultItem }) {
+function TextSection({ title, storageKey, tabId, currentWeek, placeholder }) {
   const fullKey = `${tabId}_${storageKey}`;
+  const [data, setData] = useState({});
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setData(load(fullKey, {}));
+  }, [fullKey]);
+
+  const text = data[currentWeek] || '';
+
+  const updateText = (value) => {
+    const updated = { ...data, [currentWeek]: value };
+    setData(updated);
+    save(fullKey, updated);
+  };
+
+  return (
+    <div className="bg-dark-surface border border-dark-border rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-dark-hover transition-colors"
+        onClick={() => setCollapsed(!collapsed)}>
+        {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+        <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+      </div>
+      {!collapsed && (
+        <div className="px-4 pb-3">
+          <textarea
+            value={text}
+            onChange={(e) => updateText(e.target.value)}
+            placeholder={placeholder}
+            className="w-full text-sm bg-dark-bg border border-dark-border rounded-lg px-3 py-2 resize-y min-h-[80px] text-text-primary"
+            rows={4}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JiraSection({ tabId, currentWeek }) {
+  const fullKey = `${tabId}_jiras`;
   const [items, setItems] = useState({});
   const [collapsed, setCollapsed] = useState(false);
 
@@ -110,6 +119,7 @@ function Section({ title, icon: Icon, storageKey, tabId, currentWeek, fields, de
       loaded = rolloverItems(loaded, weeks[0], weeks[1]);
     }
     setItems(loaded);
+    save(fullKey, loaded);
   }, [fullKey]);
 
   const weekItems = items[currentWeek] || [];
@@ -121,52 +131,73 @@ function Section({ title, icon: Icon, storageKey, tabId, currentWeek, fields, de
   }, [items, currentWeek, fullKey]);
 
   const addItem = () => {
-    const newItem = { id: uuidv4(), ...defaultItem, createdAt: new Date().toISOString() };
-    updateItems([...weekItems, newItem]);
+    updateItems([...weekItems, {
+      id: uuidv4(), title: '', ticket: '', priority: 'medium', status: 'open', notes: '',
+      sourceTab: tabId, createdAt: new Date().toISOString()
+    }]);
   };
 
   const updateItem = (updatedItem) => {
-    updateItems(weekItems.map(i => i.id === updatedItem.id ? updatedItem : i));
+    const newItems = weekItems.map(i => i.id === updatedItem.id ? updatedItem : i);
+    updateItems(newItems);
+    syncToDataEngineering(newItems);
   };
 
   const deleteItem = (id) => {
     updateItems(weekItems.filter(i => i.id !== id));
   };
 
+  const syncToDataEngineering = (jiras) => {
+    const deKey = 'de_tickets';
+    const deData = load(deKey, {});
+    const deWeekItems = deData[currentWeek] || [];
+    const openJiras = jiras.filter(j => j.status !== 'closed');
+
+    const existingLinkedIds = new Set(deWeekItems.filter(t => t.linkedFrom).map(t => t.linkedFrom));
+    const newLinked = openJiras
+      .filter(j => !existingLinkedIds.has(j.id))
+      .map(j => ({
+        id: uuidv4(), title: j.title || 'Untitled', ticketId: j.ticket,
+        status: j.status === 'in-progress' ? 'in-progress' : 'open',
+        notes: `From ${tabId}: ${j.notes || ''}`, assignee: '', critical: false,
+        linkedFrom: j.id, sourceTab: tabId, createdAt: new Date().toISOString()
+      }));
+
+    const updatedDe = deWeekItems
+      .map(t => {
+        if (!t.linkedFrom) return t;
+        const sourceJira = jiras.find(j => j.id === t.linkedFrom);
+        if (!sourceJira) return t;
+        if (sourceJira.status === 'closed') return { ...t, status: 'done' };
+        return { ...t, title: sourceJira.title || t.title, ticketId: sourceJira.ticket || t.ticketId };
+      })
+      .concat(newLinked);
+
+    deData[currentWeek] = updatedDe;
+    save(deKey, deData);
+  };
+
   return (
     <div className="bg-dark-surface border border-dark-border rounded-xl overflow-hidden">
-      <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-dark-hover transition-colors"
-        onClick={() => setCollapsed(!collapsed)}
-      >
+      <div className="flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-dark-hover transition-colors"
+        onClick={() => setCollapsed(!collapsed)}>
         <div className="flex items-center gap-2">
-          {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-          <Icon size={16} className="text-accent-blue" />
-          <h3 className="text-sm font-semibold">{title}</h3>
-          <span className="badge badge-blue">{weekItems.length}</span>
+          {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+          <h3 className="text-sm font-semibold text-text-primary">Jiras</h3>
+          <span className="badge badge-green">{weekItems.length}</span>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); addItem(); }}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-accent-blue hover:bg-accent-blue/10 rounded transition-colors"
-        >
-          <Plus size={12} />
-          Add
+        <button onClick={(e) => { e.stopPropagation(); addItem(); }}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-accent-green hover:bg-accent-green/10 rounded transition-colors">
+          <Plus size={12} /> Add
         </button>
       </div>
-
       {!collapsed && (
-        <div className="px-4 pb-3 space-y-1.5">
+        <div className="px-4 pb-3 space-y-1">
           {weekItems.length === 0 ? (
-            <p className="text-xs text-text-muted py-3 text-center">No items yet</p>
+            <p className="text-xs text-text-muted py-3 text-center">No jiras yet — click Add to start</p>
           ) : (
             weekItems.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                onUpdate={updateItem}
-                onDelete={deleteItem}
-                fields={fields}
-              />
+              <JiraRow key={item.id} item={item} onUpdate={updateItem} onDelete={deleteItem} />
             ))
           )}
         </div>
@@ -181,73 +212,40 @@ export default function WorkTab({ tabId, tabName }) {
   const currentWeek = weeks[weekOffset] || weeks[0];
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-5xl mx-auto space-y-4">
       {/* Week selector */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setWeekOffset(Math.min(weekOffset + 1, weeks.length - 1))}
-            className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-dark-card rounded transition-colors"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <div className="text-center">
-            <span className="text-sm font-semibold">{getWeekLabel(currentWeek)}</span>
-            {weekOffset === 0 && <span className="ml-2 badge badge-green">Current</span>}
-          </div>
-          <button
-            onClick={() => setWeekOffset(Math.max(weekOffset - 1, 0))}
-            disabled={weekOffset === 0}
-            className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-dark-card rounded transition-colors disabled:opacity-30"
-          >
-            <ChevronRightIcon size={16} />
-          </button>
+      <div className="flex items-center justify-center gap-3">
+        <button onClick={() => setWeekOffset(Math.min(weekOffset + 1, weeks.length - 1))}
+          className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-dark-card rounded transition-colors">
+          <ChevronLeft size={16} />
+        </button>
+        <div className="text-center min-w-[180px]">
+          <span className="text-sm font-semibold">{getWeekLabel(currentWeek)}</span>
+          {weekOffset === 0 && <span className="ml-2 badge badge-green">Current</span>}
         </div>
+        <button onClick={() => setWeekOffset(Math.max(weekOffset - 1, 0))}
+          disabled={weekOffset === 0}
+          className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-dark-card rounded transition-colors disabled:opacity-30">
+          <ChevronRightIcon size={16} />
+        </button>
       </div>
 
-      {/* Sections */}
-      <Section
-        title="Jiras"
-        icon={Bug}
-        storageKey="jiras"
-        tabId={tabId}
-        currentWeek={currentWeek}
-        fields={[
-          { key: 'title', width: 'flex-[2]', placeholder: 'Jira title...' },
-          { key: 'ticket', width: 'w-28', placeholder: 'PROJ-123' },
-          { key: 'priority', width: 'w-20', placeholder: 'Priority' },
-          { key: 'notes', width: 'flex-1', placeholder: 'Notes...' },
-        ]}
-        defaultItem={{ title: '', ticket: '', priority: 'medium', status: 'open', notes: '' }}
-      />
+      <JiraSection tabId={tabId} currentWeek={currentWeek} />
 
-      <Section
+      <TextSection
         title="Commitments from Calls"
-        icon={MessageSquare}
         storageKey="commitments"
         tabId={tabId}
         currentWeek={currentWeek}
-        fields={[
-          { key: 'title', width: 'flex-[2]', placeholder: 'Commitment...' },
-          { key: 'owner', width: 'w-28', placeholder: 'Owner' },
-          { key: 'dueDate', width: 'w-28', placeholder: 'Due date' },
-          { key: 'notes', width: 'flex-1', placeholder: 'Notes...' },
-        ]}
-        defaultItem={{ title: '', owner: '', dueDate: '', status: 'open', notes: '' }}
+        placeholder="Type your commitments here... These are free-form notes from calls and meetings."
       />
 
-      <Section
+      <TextSection
         title="Call Prep"
-        icon={Phone}
         storageKey="callprep"
         tabId={tabId}
         currentWeek={currentWeek}
-        fields={[
-          { key: 'title', width: 'flex-[2]', placeholder: 'Meeting / call...' },
-          { key: 'date', width: 'w-28', placeholder: 'Date' },
-          { key: 'agenda', width: 'flex-1', placeholder: 'Agenda / prep notes...' },
-        ]}
-        defaultItem={{ title: '', date: '', agenda: '' }}
+        placeholder="Prepare for upcoming calls... Agenda items, talking points, questions to ask."
       />
     </div>
   );

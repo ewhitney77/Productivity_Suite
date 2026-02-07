@@ -1,18 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  Plus, Trash2, GripVertical, Calendar, Flag, FileText,
-  ChevronDown, ChevronRight, MoreHorizontal
-} from 'lucide-react';
+import { Plus, Trash2, Calendar, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
 import { load, save } from '../../lib/storage';
 
 const COLUMNS = [
-  { id: 'backlog', label: 'Backlog', color: 'border-text-muted', bgLabel: 'bg-text-muted/10 text-text-secondary' },
-  { id: 'scoping', label: 'Scoping', color: 'border-accent-purple', bgLabel: 'bg-accent-purple/10 text-accent-purple' },
-  { id: 'dev', label: 'Dev', color: 'border-accent-blue', bgLabel: 'bg-accent-blue/10 text-accent-blue' },
-  { id: 'complete', label: 'Complete', color: 'border-green-500', bgLabel: 'bg-green-500/10 text-green-400' },
+  { id: 'backlog', label: 'Backlog', color: '#8892A7', borderClass: 'border-t-text-secondary' },
+  { id: 'scoping', label: 'Scoping', color: '#7C5CFC', borderClass: 'border-t-accent-purple' },
+  { id: 'dev', label: 'Dev', color: '#4ADE80', borderClass: 'border-t-accent-green' },
+  { id: 'complete', label: 'Complete', color: '#34D399', borderClass: 'border-t-accent-mint' },
 ];
 
 const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
@@ -23,96 +20,113 @@ const PRIORITY_COLORS = {
   urgent: 'text-red-400 bg-red-400/10',
 };
 
-function TaskCard({ task, onUpdate, onDelete, onMove }) {
+function TaskCard({ task, onUpdate, onDelete, onDragStart, onDragEnd }) {
   const [expanded, setExpanded] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [editValue, setEditValue] = useState('');
-
-  const startEdit = (field) => { setEditing(field); setEditValue(task[field] || ''); };
-  const saveEdit = () => {
-    if (editing) { onUpdate({ ...task, [editing]: editValue }); setEditing(null); }
-  };
-
-  const colIdx = COLUMNS.findIndex(c => c.id === task.column);
 
   return (
-    <div className={`bg-dark-card border border-dark-border rounded-lg overflow-hidden
-                    priority-${task.priority || 'medium'}`}>
+    <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', task.id);
+        e.currentTarget.classList.add('dragging');
+        onDragStart(task.id);
+      }}
+      onDragEnd={(e) => {
+        e.currentTarget.classList.remove('dragging');
+        onDragEnd();
+      }}
+      className={`bg-dark-card border border-dark-border rounded-lg overflow-hidden cursor-grab active:cursor-grabbing
+                  priority-${task.priority || 'medium'}`}
+    >
       <div className="p-3">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          {editing === 'name' ? (
-            <input value={editValue} onChange={(e) => setEditValue(e.target.value)}
-              onBlur={saveEdit} onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
-              className="flex-1 text-sm bg-dark-bg px-2 py-1 rounded font-medium" autoFocus />
-          ) : (
-            <span onClick={() => startEdit('name')}
-              className="text-sm font-medium text-text-primary cursor-pointer hover:text-accent-blue flex-1">
-              {task.name || 'Untitled task'}
-            </span>
-          )}
-          <button onClick={() => onDelete(task.id)}
-            className="text-text-muted hover:text-red-400 shrink-0">
-            <Trash2 size={12} />
+        <div className="flex items-start gap-2 mb-2">
+          <GripVertical size={12} className="text-text-muted mt-0.5 shrink-0" />
+          <input
+            value={task.name}
+            onChange={(e) => onUpdate({ ...task, name: e.target.value })}
+            placeholder="Task name..."
+            className="flex-1 text-sm bg-transparent border-none px-0 py-0 font-medium text-text-primary"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button onClick={() => onDelete(task.id)} className="text-text-muted hover:text-red-400 shrink-0">
+            <Trash2 size={11} />
           </button>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Priority */}
+        <div className="flex items-center gap-2 flex-wrap ml-5">
           <select value={task.priority || 'medium'}
             onChange={(e) => onUpdate({ ...task, priority: e.target.value })}
-            className={`text-xs px-1.5 py-0.5 rounded border-none ${PRIORITY_COLORS[task.priority || 'medium']}`}>
+            className={`text-[10px] px-1.5 py-0.5 rounded border-none ${PRIORITY_COLORS[task.priority || 'medium']}`}>
             {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
 
-          {/* Due date */}
-          {editing === 'dueDate' ? (
-            <input type="date" value={editValue} onChange={(e) => setEditValue(e.target.value)}
-              onBlur={saveEdit} className="text-xs bg-dark-bg px-1.5 py-0.5 rounded" autoFocus />
-          ) : (
-            <span onClick={() => startEdit('dueDate')}
-              className="flex items-center gap-1 text-xs text-text-muted cursor-pointer hover:text-accent-blue">
-              <Calendar size={10} />
-              {task.dueDate || 'No date'}
-            </span>
-          )}
+          <div className="flex items-center gap-1">
+            <Calendar size={9} className="text-text-muted" />
+            <input type="date" value={task.dueDate || ''}
+              onChange={(e) => onUpdate({ ...task, dueDate: e.target.value })}
+              className="text-[10px] bg-transparent border-none px-0 py-0 text-text-muted w-[90px]" />
+          </div>
         </div>
 
-        {/* Details toggle */}
         <button onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-xs text-text-muted hover:text-text-secondary mt-2">
-          {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+          className="flex items-center gap-1 text-[10px] text-text-muted hover:text-text-secondary mt-2 ml-5">
+          {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
           Details
         </button>
 
         {expanded && (
-          <div className="mt-2 pt-2 border-t border-dark-border">
-            {editing === 'details' ? (
-              <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)}
-                onBlur={saveEdit} className="w-full text-xs bg-dark-bg px-2 py-1 rounded resize-none" rows={3} autoFocus />
-            ) : (
-              <p onClick={() => startEdit('details')}
-                className="text-xs text-text-secondary cursor-pointer hover:text-accent-blue">
-                {task.details || 'Click to add details...'}
-              </p>
-            )}
+          <div className="mt-2 pt-2 border-t border-dark-border ml-5">
+            <textarea value={task.details || ''}
+              onChange={(e) => onUpdate({ ...task, details: e.target.value })}
+              placeholder="Add details..."
+              className="w-full text-xs bg-dark-bg border border-dark-border rounded px-2 py-1 resize-none min-h-[50px]" />
           </div>
         )}
+      </div>
+    </div>
+  );
+}
 
-        {/* Move buttons */}
-        <div className="flex items-center gap-1 mt-2">
-          {colIdx > 0 && (
-            <button onClick={() => onMove(task.id, COLUMNS[colIdx - 1].id)}
-              className="text-xs px-2 py-0.5 text-text-muted hover:text-text-primary bg-dark-bg rounded">
-              ← {COLUMNS[colIdx - 1].label}
-            </button>
-          )}
-          {colIdx < COLUMNS.length - 1 && (
-            <button onClick={() => onMove(task.id, COLUMNS[colIdx + 1].id)}
-              className="text-xs px-2 py-0.5 text-text-muted hover:text-text-primary bg-dark-bg rounded ml-auto">
-              {COLUMNS[colIdx + 1].label} →
-            </button>
-          )}
+function KanbanColumn({ col, tasks, onAddTask, onUpdateTask, onDeleteTask, onDrop, onDragStart, onDragEnd }) {
+  const [dragOver, setDragOver] = useState(false);
+
+  return (
+    <div className="flex flex-col min-w-[260px] flex-1">
+      <div className="flex items-center justify-between px-3 py-2 bg-dark-surface border border-dark-border rounded-t-xl"
+        style={{ borderTopColor: col.color, borderTopWidth: '2px' }}>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: `${col.color}18`, color: col.color }}>
+            {col.label}
+          </span>
+          <span className="text-xs text-text-muted">{tasks.length}</span>
         </div>
+        <button onClick={() => onAddTask(col.id)} className="text-text-muted hover:text-accent-green transition-colors">
+          <Plus size={14} />
+        </button>
+      </div>
+
+      <div
+        className={`flex-1 bg-dark-surface/50 border border-dark-border border-t-0 rounded-b-xl p-2 space-y-2 min-h-[300px] transition-colors
+                    ${dragOver ? 'drag-over' : ''}`}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const taskId = e.dataTransfer.getData('text/plain');
+          if (taskId) onDrop(taskId, col.id);
+        }}
+      >
+        {tasks.length === 0 ? (
+          <div className="text-center py-8 text-text-muted">
+            <p className="text-xs">Drop items here</p>
+          </div>
+        ) : (
+          tasks.map((task) => (
+            <TaskCard key={task.id} task={task} onUpdate={onUpdateTask} onDelete={onDeleteTask}
+              onDragStart={onDragStart} onDragEnd={onDragEnd} />
+          ))
+        )}
       </div>
     </div>
   );
@@ -120,85 +134,47 @@ function TaskCard({ task, onUpdate, onDelete, onMove }) {
 
 export default function ProjectPlanningTab() {
   const [tasks, setTasks] = useState([]);
+  const [draggingId, setDraggingId] = useState(null);
 
-  useEffect(() => {
-    setTasks(load('project_planning', []));
-  }, []);
+  useEffect(() => { setTasks(load('project_planning', [])); }, []);
 
-  const saveTasks = (updated) => {
-    setTasks(updated);
-    save('project_planning', updated);
-  };
+  const saveTasks = (updated) => { setTasks(updated); save('project_planning', updated); };
 
   const addTask = (column) => {
-    const newTask = {
-      id: uuidv4(),
-      name: '',
-      column,
-      priority: 'medium',
-      dueDate: '',
-      details: '',
+    saveTasks([...tasks, {
+      id: uuidv4(), name: '', column, priority: 'medium', dueDate: '', details: '',
       createdAt: new Date().toISOString(),
-    };
-    saveTasks([...tasks, newTask]);
+    }]);
   };
 
-  const updateTask = (updatedTask) => {
-    saveTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
-  };
+  const updateTask = (updatedTask) => { saveTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t)); };
+  const deleteTask = (id) => { saveTasks(tasks.filter(t => t.id !== id)); };
 
-  const deleteTask = (id) => {
-    saveTasks(tasks.filter(t => t.id !== id));
-  };
-
-  const moveTask = (id, newColumn) => {
-    saveTasks(tasks.map(t => t.id === id ? { ...t, column: newColumn } : t));
+  const handleDrop = (taskId, newColumn) => {
+    saveTasks(tasks.map(t => t.id === taskId ? { ...t, column: newColumn } : t));
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <FileText size={20} className="text-accent-blue" />
-        <h2 className="text-lg font-semibold">Project Planning</h2>
-        <span className="badge badge-blue">{tasks.length} items</span>
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold">Project Planning</h2>
+        <span className="badge badge-green">{tasks.length} items</span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {COLUMNS.map((col) => {
-          const colTasks = tasks.filter(t => t.column === col.id);
-          return (
-            <div key={col.id} className="flex flex-col">
-              {/* Column header */}
-              <div className={`flex items-center justify-between px-3 py-2 rounded-t-xl border-t-2 ${col.color}
-                             bg-dark-surface border border-dark-border border-t-0`}>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded ${col.bgLabel}`}>
-                    {col.label}
-                  </span>
-                  <span className="text-xs text-text-muted">{colTasks.length}</span>
-                </div>
-                <button onClick={() => addTask(col.id)}
-                  className="text-text-muted hover:text-accent-blue transition-colors">
-                  <Plus size={14} />
-                </button>
-              </div>
-
-              {/* Column body */}
-              <div className="flex-1 bg-dark-surface/50 border border-dark-border border-t-0 rounded-b-xl p-2 space-y-2 kanban-col">
-                {colTasks.length === 0 ? (
-                  <div className="text-center py-8 text-text-muted">
-                    <p className="text-xs">No items</p>
-                  </div>
-                ) : (
-                  colTasks.map((task) => (
-                    <TaskCard key={task.id} task={task} onUpdate={updateTask}
-                      onDelete={deleteTask} onMove={moveTask} />
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: '400px' }}>
+        {COLUMNS.map((col) => (
+          <KanbanColumn
+            key={col.id}
+            col={col}
+            tasks={tasks.filter(t => t.column === col.id)}
+            onAddTask={addTask}
+            onUpdateTask={updateTask}
+            onDeleteTask={deleteTask}
+            onDrop={handleDrop}
+            onDragStart={setDraggingId}
+            onDragEnd={() => setDraggingId(null)}
+          />
+        ))}
       </div>
     </div>
   );
